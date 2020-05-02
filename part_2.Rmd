@@ -1,0 +1,110 @@
+---
+title: 'Statistical Inference: Part 1'
+author: "Paul Degtyariov"
+date: "02 05 2020"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Overview
+This is a part 2 for project in Statistical Inference cource by JHU. It's dedicated to examining the tooth grow dataset.
+
+## Tasks
+1. Load the ToothGrowth data and perform some basic exploratory data analyses  
+2. Provide a basic summary of the data.  
+3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)  
+4. State your conclusions and the assumptions needed for your conclusions.  
+
+## Loading data and packages
+```{r results='hide',message=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(knitr)
+
+data(ToothGrowth)
+
+```
+
+
+## Tasks 1 and 2
+```{r}
+
+#Looking at data
+str(ToothGrowth)
+summary(ToothGrowth)
+
+#As there is a factor varible that describes the type of summplemet, let's look on some summaries statistics on numerics - dosage and teeth length by it
+
+summ <- ToothGrowth %>% 
+    group_by(supp,dose) %>% 
+    summarise(count=n(),Mean=mean(len),SD=sd(len),Min=min(len),Med=median(len),Max=max(len)) %>% 
+    ungroup()
+
+kable(summ)
+
+#At this point it seems like there is a connection between the dosage and length for both supplemets. Let's visualise this correlation
+ggplot(ToothGrowth,aes(x=dose,y=len,group=dose))+
+    geom_boxplot(fill=NA)+
+    facet_wrap(~supp,nrow=1)
+
+```
+
+## Task 3
+
+First let's explore the effect of supplement on tooth length. We will use a two-sample t-test with a confidence level of 95% and unequal variances.  
+
+```{r}
+
+supp_test <- t.test(len ~ supp, data= ToothGrowth, var.equal = FALSE, paired=FALSE ,conf.level = .95)
+
+supp_test
+
+```
+
+As it's shown in the summary, the null hypothesis is proven, meaning there is no significant difference in teeth length in relation to used supplement - the p-value is higher then 0.05  
+
+Now let's look at the effect of dosage using the same method  
+
+```{r}
+
+#Doses 0.5 and 1
+dose_test1 <- t.test(len ~ dose, data= ToothGrowth %>% filter(dose==0.5|dose==1), var.equal = FALSE, paired=FALSE ,conf.level = .95)
+
+dose_test1
+
+#Doses 1 and 2
+dose_test2 <- t.test(len ~ dose, data= ToothGrowth %>% filter(dose==1|dose==2), var.equal = FALSE, paired=FALSE ,conf.level = .95)
+
+dose_test2
+
+```
+
+Finnally, let's explore the effect of dosage of each supplement on teeth length using the same method
+
+```{r}
+
+#0.5 dose
+supp_05_test <-  t.test(len ~ supp, data= ToothGrowth %>% filter(dose==0.5), var.equal = FALSE, paired=FALSE ,conf.level = .95)
+
+supp_05_test
+
+#1 dose
+supp_1_test <-  t.test(len ~ supp, data= ToothGrowth %>% filter(dose==1), var.equal = FALSE, paired=FALSE ,conf.level = .95)
+
+supp_1_test
+
+#2 dose
+supp_2_test <-  t.test(len ~ supp, data= ToothGrowth %>% filter(dose==2), var.equal = FALSE, paired=FALSE ,conf.level = .95)
+
+supp_2_test
+
+
+```
+
+# Task 4 - Conclusions
+
+Conluding from this analysis, we can state that increased doses of any supplement corresponds to higher teeth length as on booth tests p.value is close to zero. It's also to be noted that increase of a dose from 0.5 to 1 corresponds to bigger discrepency mean length then increse of a dose from 1 to 2.
+
+However, there are two points of dosage - 0.5 and 1,- where OJ is shown to be corresponding to bigger values of teeth length then VC (as in both cases the p.value is smaller then 0.01. For the dosage of 2 there is no difference between supplements, and the p,value for the T test is 0.96
